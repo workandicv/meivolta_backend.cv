@@ -1,0 +1,369 @@
+generator client {
+  provider      = "prisma-client-js"
+  output        = "/home/ubuntu/meivolta_app/nodejs_space/node_modules/.prisma/client"
+  binaryTargets = ["native", "linux-musl-arm64-openssl-3.0.x"]
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model User {
+  id                String             @id @default(uuid())
+  email             String             @unique
+  password          String
+  name              String
+  phone             String?
+  userType          UserType           @default(TOURIST)
+  isActive          Boolean            @default(true)
+  createdAt         DateTime           @default(now())
+  updatedAt         DateTime           @updatedAt
+  latitude          Float?
+  licenseNumber     String?
+  locationUpdatedAt DateTime?
+  longitude         Float?
+  vehicleModel      String?
+  vehiclePlate      String?
+  isOnline          Boolean            @default(false)
+  onlineSince       DateTime?
+  expoPushToken     String?
+  avatarUrl         String?
+  assignedBookings  Booking[]          @relation("AssignedBookings")
+  bookings          Booking[]
+  chatMessages      ChatMessage[]
+  deliveries        Delivery[]
+  driverSessions    DriverSession[]
+  excursions        Excursion[]        @relation("DriverExcursions")
+  pointTransactions PointTransaction[]
+  ratings           Rating[]
+  rentals           Rental[]
+  driverRides       Ride[]             @relation("DriverRides")
+  rides             Ride[]             @relation("UserRides")
+  reservations      TableReservation[]
+
+  @@index([userType])
+}
+
+model Ride {
+  id             String      @id @default(uuid())
+  userId         String
+  pickupLocation String
+  destination    String
+  passengers     Int
+  serviceType    ServiceType
+  scheduledTime  DateTime?
+  notes          String?
+  status         RideStatus  @default(PENDING)
+  driverId       String?
+  createdAt      DateTime    @default(now())
+  updatedAt      DateTime    @updatedAt
+  driver         User?       @relation("DriverRides", fields: [driverId], references: [id])
+  user           User        @relation("UserRides", fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+  @@index([driverId])
+  @@index([status])
+  @@index([createdAt])
+}
+
+model Excursion {
+  id            String            @id @default(uuid())
+  nameEn        String
+  namePt        String
+  descriptionEn String
+  descriptionPt String
+  price         Float
+  duration      String
+  category      ExcursionCategory
+  maxCapacity   Int
+  imageUrl      String?
+  isActive      Boolean           @default(true)
+  createdAt     DateTime          @default(now())
+  updatedAt     DateTime          @updatedAt
+  driverId      String?
+  priceAdult    Float?
+  priceChild    Float?
+  gallery       Json?
+  bookings      Booking[]
+  driver        User?             @relation("DriverExcursions", fields: [driverId], references: [id])
+
+  @@index([category])
+  @@index([isActive])
+  @@index([driverId])
+}
+
+model Booking {
+  id               String            @id @default(uuid())
+  userId           String
+  excursionId      String
+  date             DateTime
+  numberOfPeople   Int
+  totalPrice       Float
+  status           BookingStatus     @default(PENDING)
+  createdAt        DateTime          @default(now())
+  updatedAt        DateTime          @updatedAt
+  accommodation    String?
+  firstName        String?
+  language         String?
+  lastName         String?
+  numAdults        Int?              @default(1)
+  numChildren      Int?              @default(0)
+  observations     String?
+  phone            String?
+  phoneCode        String?
+  assignedDriverId String?
+  assignmentStatus AssignmentStatus?
+  assignedDriver   User?             @relation("AssignedBookings", fields: [assignedDriverId], references: [id])
+  excursion        Excursion         @relation(fields: [excursionId], references: [id], onDelete: Cascade)
+  user             User              @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+  @@index([excursionId])
+  @@index([status])
+  @@index([date])
+  @@index([assignedDriverId])
+}
+
+model Rental {
+  id               String       @id @default(uuid())
+  userId           String
+  vehicleType      String
+  pickupDate       String
+  returnDate       String?
+  deliveryLocation String?
+  status           RentalStatus @default(PENDING)
+  createdAt        DateTime     @default(now())
+  updatedAt        DateTime     @updatedAt
+  user             User         @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+  @@index([status])
+}
+
+model Delivery {
+  id               String         @id @default(uuid())
+  userId           String
+  category         String
+  pickupAddress    String
+  deliveryAddress  String
+  itemsDescription String?
+  status           DeliveryStatus @default(PENDING)
+  createdAt        DateTime       @default(now())
+  updatedAt        DateTime       @updatedAt
+  user             User           @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+  @@index([status])
+}
+
+model PointTransaction {
+  id          String   @id @default(uuid())
+  userId      String
+  points      Int
+  description String
+  createdAt   DateTime @default(now())
+  user        User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+  @@index([createdAt])
+}
+
+model Event {
+  id            String        @id @default(uuid())
+  nameEn        String
+  namePt        String
+  descriptionEn String
+  descriptionPt String
+  category      EventCategory
+  date          DateTime
+  endDate       DateTime?
+  location      String
+  imageUrl      String?
+  isActive      Boolean       @default(true)
+  createdAt     DateTime      @default(now())
+  updatedAt     DateTime      @updatedAt
+  duration      String?
+  startTime     String?
+  gallery       Json?
+
+  @@index([category])
+  @@index([date])
+  @@index([isActive])
+}
+
+model Place {
+  id            String             @id @default(uuid())
+  nameEn        String
+  namePt        String
+  descriptionEn String
+  descriptionPt String
+  type          PlaceType
+  imageUrl      String?
+  location      String?
+  detailsEn     Json?
+  detailsPt     Json?
+  isActive      Boolean            @default(true)
+  createdAt     DateTime           @default(now())
+  updatedAt     DateTime           @updatedAt
+  latitude      Float?
+  longitude     Float?
+  gallery       Json?
+  reservations  TableReservation[]
+
+  @@index([type])
+  @@index([isActive])
+}
+
+model Rating {
+  id         String           @id @default(uuid())
+  userId     String
+  targetType RatingTargetType
+  targetId   String
+  stars      Int
+  comment    String?
+  createdAt  DateTime         @default(now())
+  user       User             @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([targetType, targetId])
+  @@index([userId])
+}
+
+model ChatMessage {
+  id          String   @id @default(uuid())
+  userId      String
+  serviceType String
+  serviceId   String
+  message     String
+  createdAt   DateTime @default(now())
+  mediaUrl    String?
+  messageType String   @default("text")
+  isFromAdmin Boolean  @default(false)
+  isRead      Boolean  @default(false)
+  user        User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([serviceType, serviceId])
+  @@index([userId])
+}
+
+model TableReservation {
+  id        String            @id @default(uuid())
+  userId    String
+  placeId   String
+  date      String
+  time      String
+  guests    Int
+  status    ReservationStatus @default(PENDING)
+  notes     String?
+  createdAt DateTime          @default(now())
+  updatedAt DateTime          @updatedAt
+  place     Place             @relation(fields: [placeId], references: [id], onDelete: Cascade)
+  user      User              @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+  @@index([placeId])
+}
+
+model DriverSession {
+  id        String    @id @default(uuid())
+  driverId  String
+  startedAt DateTime  @default(now())
+  endedAt   DateTime?
+  driver    User      @relation(fields: [driverId], references: [id], onDelete: Cascade)
+
+  @@index([driverId])
+  @@index([startedAt])
+}
+
+model AdminConfig {
+  key       String   @id
+  value     String
+  updatedAt DateTime @updatedAt
+}
+
+enum UserType {
+  TOURIST
+  DRIVER
+  GUIDE
+  ADMIN
+}
+
+enum ServiceType {
+  TAXI
+  TRANSFER
+}
+
+enum RideStatus {
+  PENDING
+  ACCEPTED
+  COMPLETED
+  CANCELLED
+  IN_PROGRESS
+}
+
+enum ExcursionCategory {
+  PICKUP_4X4
+  BEACH_TOUR
+  CULTURAL
+  TURTLES
+  BOAT
+  DIVING
+  FISHING
+  DESERT_VIANA
+  PHOTO_TOUR
+}
+
+enum BookingStatus {
+  PENDING
+  CONFIRMED
+  CANCELLED
+}
+
+enum AssignmentStatus {
+  PENDING
+  ACCEPTED
+  REJECTED
+}
+
+enum PlaceType {
+  BEACH
+  RESTAURANT
+}
+
+enum RentalStatus {
+  PENDING
+  CONFIRMED
+  ACTIVE
+  COMPLETED
+  CANCELLED
+}
+
+enum DeliveryStatus {
+  PENDING
+  ACCEPTED
+  PICKED_UP
+  DELIVERED
+  CANCELLED
+}
+
+enum EventCategory {
+  FESTIVAL
+  MUSIC
+  CULTURAL
+  RELIGIOUS
+  SPORTS
+}
+
+enum RatingTargetType {
+  DRIVER
+  GUIDE
+  RESTAURANT
+  EXCURSION
+  SERVICE
+}
+
+enum ReservationStatus {
+  PENDING
+  CONFIRMED
+  CANCELLED
+}
